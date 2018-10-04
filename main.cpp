@@ -1,3 +1,6 @@
+//An Chess Engine for predicting next move using a Screenshot//
+
+
 #include <opencv2/opencv.hpp>
 #include <bits/stdc++.h>
 using namespace cv;
@@ -12,14 +15,14 @@ int main()
 
 
 
-    img = imread("images/startpos.png", 1);
-	namedWindow("abc", WINDOW_NORMAL);
-	// createTrackbar("red max", "abc", &rmax, 255);
-	// createTrackbar("red min", "abc", &rmin, 255);
-	// createTrackbar("green max", "abc", &gmax, 255);
-	// createTrackbar("green min", "abc", &gmin, 255);
-	// createTrackbar("blue max", "abc", &bmax, 255);
-	// createTrackbar("blue mbx", "abc", &bmin, 255);
+    img = imread("images/startpos3.png", 1);
+	// namedWindow("Image for thresholding", WINDOW_NORMAL);
+	// createTrackbar("red max", "Image for thresholding", &rmax, 255);
+	// createTrackbar("red min", "Image for thresholding", &rmin, 255);
+	// createTrackbar("green max", "Image for thresholding", &gmax, 255);
+	// createTrackbar("green min", "Image for thresholding", &gmin, 255);
+	// createTrackbar("blue max", "Image for thresholding", &bmax, 255);
+	// createTrackbar("blue mbx", "Image for thresholding", &bmin, 255);
 
     Mat img1(img.rows, img.cols, CV_8UC1, Scalar(0));
 	int i, j;
@@ -35,10 +38,10 @@ int main()
 			    img1.at<uchar>(i, j) = 0;
 	    }
 	}
-	namedWindow("abc", WINDOW_NORMAL);
+	// namedWindow("Image for thresholding", WINDOW_NORMAL);
     medianBlur( img1, img1, 3 );
-	imshow("abc", img1);
-	waitKey(0);
+	// imshow("Image for thresholding", img1);
+	// waitKey(0);
 
     int x1=-INT_MAX,y1=-INT_MAX,x2,y2;
 
@@ -79,5 +82,21 @@ int main()
         if(flag)
         break;
 	}
+
+	cout<<x1<<" "<<y1<<endl;
+	cout<<y1<<" "<<y2<<endl;
+	cout<<img.rows<<" "<<img.cols<<endl;
+
+	//Displaying the point obtained above
+ 	// circle( img, Point( y1, x1 ), 8.0, Scalar( 0, 0, 255 ), 1, 8 );
+	// circle( img, Point( y2, x2 ), 8.0, Scalar( 0, 0, 255 ), 1, 8 ); 
+  	// imshow("The required points for cropping out",img);
+
+	int startX=y2,startY=x1,height=x2-x1,width=y1-y2;
+
+    Mat ROI(img, Rect(startX,startY,width,height));
+    Mat croppedImage;
+    ROI.copyTo(croppedImage);
+    imshow("Cropped portion",croppedImage);
     waitKey(0);    
 }
