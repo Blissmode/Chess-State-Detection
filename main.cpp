@@ -16,16 +16,9 @@ int main()
 
 
     img = imread("images/startpos3.png", 1);
-	// namedWindow("Image for thresholding", WINDOW_NORMAL);
-	// createTrackbar("red max", "Image for thresholding", &rmax, 255);
-	// createTrackbar("red min", "Image for thresholding", &rmin, 255);
-	// createTrackbar("green max", "Image for thresholding", &gmax, 255);
-	// createTrackbar("green min", "Image for thresholding", &gmin, 255);
-	// createTrackbar("blue max", "Image for thresholding", &bmax, 255);
-	// createTrackbar("blue mbx", "Image for thresholding", &bmin, 255);
-
     Mat img1(img.rows, img.cols, CV_8UC1, Scalar(0));
 	int i, j;
+	//Colour Detection to remove the unwanted parts in the image
 	for (i = 0; i < img.rows; i++)
 	{
 	    for (j = 0; j < img.cols; j++)
@@ -38,16 +31,16 @@ int main()
 			    img1.at<uchar>(i, j) = 0;
 	    }
 	}
-	// namedWindow("Image for thresholding", WINDOW_NORMAL);
+	//To remove the salt and pepper noise left after thresholding
     medianBlur( img1, img1, 3 );
-	// imshow("Image for thresholding", img1);
-	// waitKey(0);
-
-    int x1=-INT_MAX,y1=-INT_MAX,x2,y2;
+	
+	
+    int x1,y1,x2,y2;
 
     // (x1,y1) is uppermost rightmost point
     // (x2,y2) is lowermost leftmost point
     int flag=0;
+	
     for (i = 0; i < img1.rows; i++)
 	{
 	    for (j = img1.cols-1; j; j--)
@@ -66,6 +59,7 @@ int main()
 	}
 
     flag=0;
+	
     for (i = img.rows-1; i ; i--)
 	{
 	    for (j = 0; j < img.cols ; j++)
