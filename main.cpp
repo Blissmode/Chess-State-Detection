@@ -98,5 +98,6 @@ int main()
     Mat croppedImage;
     ROI.copyTo(croppedImage);
     imshow("Cropped portion",croppedImage);
+	
     waitKey(0);    
 }
