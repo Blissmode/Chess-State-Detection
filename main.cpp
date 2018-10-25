@@ -1,14 +1,16 @@
 //An Chess Engine for predicting next move using a Screenshot//
 
 
-#include <opencv2/opencv.hpp>
-#include <bits/stdc++.h>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/core/core.hpp"
+#include <iostream>
 using namespace cv;
 using namespace std;
 
 int rmax = 133, rmin = 105, gmin = 140, gmax = 191, bmax = 101, bmin = 0;
 Mat img;
-
+int match_method;
 struct square
 {
 	pair <int,int> ltop;
@@ -134,8 +136,8 @@ int main()
 	{
 		for(int j=0;j<8;j++)
 		{
-			circle( src, Point( board[i][j].ltop.first,board[i][j].ltop.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
-			circle( src, Point( board[i][j].rbottom.first,board[i][j].rbottom.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
+			//circle( src, Point( board[i][j].ltop.first,board[i][j].ltop.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
+			//circle( src, Point( board[i][j].rbottom.first,board[i][j].rbottom.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
 			cout<<board[i][j].ltop.first<<" "<<board[i][j].ltop.second<<"           ";
 		}
 		cout<<endl;
