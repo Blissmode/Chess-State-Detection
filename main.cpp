@@ -14,6 +14,7 @@ struct square
 	pair <int,int> ltop;
 	pair <int,int> rbottom;
 	char piece;
+	int state;
 };
 
 square board[8][8];
@@ -54,7 +55,7 @@ int main()
 		    {
 			  x1=i;
               y1=j;
-              flag=1;
+    		  flag=1;
               break;
 	    	}
 	    }
@@ -143,6 +144,6 @@ int main()
 
 
 	imshow("point detection part",src);
-	
-    waitKey(0);    
+
+	waitKey(0);
 }
