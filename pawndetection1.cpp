@@ -101,7 +101,7 @@ for(i=0;i<12;i++)
     { matchLoc = maxLoc; }
   
   /// Show me what you go
-  rectangle( img, matchLoc, Point( matchLoc.x + Arr[k].img.cols , matchLoc.y + Arr[k].img.rows ), Scalar::all(0), 2, 8, 0 );
+  rectangle( img1, matchLoc, Point( matchLoc.x + Arr[k].img.cols , matchLoc.y + Arr[k].img.rows ), Scalar::all(0), 2, 8, 0 );
   for(x=0;x<8;x++)
   {
     for(y=0;y<8;y++)
