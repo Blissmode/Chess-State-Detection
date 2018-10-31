@@ -13,6 +13,8 @@ square board[8][8];
 int attackMatrix[8][8];
 int moveOf;
 
+
+void initialize();
 void findAttack();
 void setKing(int,int);
 void setQueen(int,int);
@@ -20,9 +22,18 @@ void setRook(int,int);
 void setKnight(int,int);
 void setBishop(int,int);
 void setPawn(int,int);
+bool checkDetect();
+void checkResponse();
+void bestMove();
+void printAns(int,int);
+
+vector< pair<int,int> > kingMoves,queenMoves,bishopMoves,rookMoves,knightMoves;
 
 int main()
 {
+
+    initialize();
+
     char s[10];
     for(int i=0;i<8;i++)
     {
@@ -58,9 +69,38 @@ int main()
     cout<<"Black to play"<<endl;
 
     findAttack();
+    if(checkDetect())
+    {
+        cout<<"Check detected"<<endl;
+        checkResponse();
+    }
+    else
+    {
+        cout<<"No Checks yeah!!!!"<<endl;
+        bestMove();
+    }
+}
+
+bool isvalid(int i,int j)
+{
+    if(i<8 && j<8 && i>=0 && j>=0)
+    return true;
+    else
+    return false;
 }
 
 
+void initialize()
+{
+    kingMoves.push_back(make_pair(1,0));
+    kingMoves.push_back(make_pair(1,1));
+    kingMoves.push_back(make_pair(0,1));
+    kingMoves.push_back(make_pair(1,0));
+    kingMoves.push_back(make_pair(-1,1));
+    kingMoves.push_back(make_pair(-1,0));
+    kingMoves.push_back(make_pair(-1,-1));
+    kingMoves.push_back(make_pair(0,-1));
+}
 
 
 
@@ -97,6 +137,8 @@ void findAttack()
     }
 
     //Display the attack array
+
+    cout<<endl<<"Attack Matrix"<<endl;
 
     for(int i=0;i<8;i++)
     {
@@ -467,3 +509,58 @@ void setPawn(int x,int y)
     }
 }
 
+bool checkDetect()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==moveOf)
+            {
+                if(board[i][j].piece=='k')
+                {
+                    if(attackMatrix[i][j])
+                    return true;
+                    else
+                    return false;
+                }
+            }
+        }
+    }
+}
+
+void checkResponse()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==moveOf)
+            {
+                if(board[i][j].piece=='k')
+                {
+                    for(int k=0;knightMoves.size();k++)
+                    {
+                        if(isvalid(i+kingMoves[k].first,j+kingMoves[k].second))
+                        {
+                            if(board[i][j].state==-1 && attackMatrix[i][j]==0)
+                            {
+                                printAns(i+kingMoves[k].first,j+kingMoves[k].second);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void bestMove()
+{
+
+}
+
+void printAns(int x, int y)
+{
+
+}
