@@ -25,9 +25,41 @@ void setPawn(int,int);
 bool checkDetect();
 void checkResponse();
 void bestMove();
+void moveQueen();
+bool attackOnQueen();
 void printAns(int,int);
 
-vector< pair<int,int> > kingMoves,queenMoves,bishopMoves,rookMoves,knightMoves;
+
+void enlistMoves();
+/*/////////////////////////////////////////////////////////////////////////
+                xS RULE:
+    +100 for each possible exchange position
+    -50 for each value on attack matrix
+/////////////////////////////////////////////////////////////////////////*/
+void enlistRook(int,int);
+void enlistKnight(int,int);
+void enlistBishop(int,int);
+void enlistPawn(int,int);
+
+
+struct pieceMovex
+{
+ int weight;
+ char piece;
+ pair<int,int> start,end;
+};
+
+struct Comp
+{
+   bool operator()(const pieceMovex& s1, const pieceMovex& s2)
+   {
+       return s1.x < s2.x;
+   }
+};
+
+vector <pieceMovex> MiniMax;
+
+vector < pair<int,int> > kingMoves,queenMoves,bishopMoves,rookMoves,knightMoves;
 
 int main()
 {
@@ -92,6 +124,8 @@ bool isvalid(int i,int j)
 
 void initialize()
 {
+
+    // inititalize king moves;
     kingMoves.push_back(make_pair(1,0));
     kingMoves.push_back(make_pair(1,1));
     kingMoves.push_back(make_pair(0,1));
@@ -543,7 +577,7 @@ void checkResponse()
                     {
                         if(isvalid(i+kingMoves[k].first,j+kingMoves[k].second))
                         {
-                            if(board[i][j].state==-1 && attackMatrix[i][j]==0)
+                            if(board[i+kingMoves[k].first][j+kingMoves[k].second].state==-1 && attackMatrix[i+kingMoves[k].first][j+kingMoves[k].second]==0)
                             {
                                 printAns(i+kingMoves[k].first,j+kingMoves[k].second);
                             }
@@ -555,12 +589,140 @@ void checkResponse()
     }
 }
 
+
 void bestMove()
+{
+    if(attackOnQueen())
+    moveQueen();
+    else
+    enlistMoves();
+}
+
+bool attackOnQueen()
 {
 
 }
 
-void printAns(int x, int y)
+void moveQueen()
 {
 
+}
+
+
+void enlistMoves()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==(!moveOf))
+            {
+                switch(board[i][j].piece)
+                {
+                    case 'r':
+                    enlistRook(i,j);
+                    break;
+                    case 'n':
+                    enlistKnight(i,j);
+                    break;
+                    case 'b':
+                    enlistBishop(i,j);
+                    break;
+                    case 'p':
+                    enlistPawn(i,j);
+                }
+            }
+        }
+    }
+
+    make_heap(vec.begin(), vec.end(), Comp());
+}
+
+
+
+
+
+
+
+
+void enlistRook(int x,int y)
+{
+    int i,j;
+
+    pieceMovex temp;
+
+    temp.piece='r';
+    temp.start=make_pair(i,j);
+    //up
+    i=x-1;
+    j=y;
+    while(i>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i--;
+    }
+
+    //left
+    i=x;
+    j=y-1;
+    while(j>=0)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        j--;
+    }
+
+    //bottom
+    i=x+1;
+    j=y;
+    while(i<8)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i++;
+    }
+
+    //right
+    i=x;
+    j=y+1;
+    while(j<8)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;setRook
+        else
+        attackMatrix[i][j]++;
+        j++;
+    }   
+}
+
+void printAns(int x, int y)
+{
+    cout<<"The best move is "<<x<<" "<<y<<endl;
 }
