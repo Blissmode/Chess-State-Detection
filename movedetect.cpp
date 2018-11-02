@@ -9,6 +9,15 @@ struct square
     int state;
 };
 
+struct pieceMovex
+{
+ int weight;
+ char piece;
+ pair<int,int> start,end;
+};
+
+
+
 square board[8][8];
 int attackMatrix[8][8];
 int moveOf;
@@ -26,13 +35,13 @@ bool checkDetect();
 void checkResponse();
 void bestMove();
 void moveQueen();
+void enlistMoves();
 bool attackOnQueen();
-void printAns(int,int);
 
 
 void enlistMoves();
 /*/////////////////////////////////////////////////////////////////////////
-                xS RULE:
+                WEIGHTS RULE:
     +100 for each possible exchange position
     -50 for each value on attack matrix
 /////////////////////////////////////////////////////////////////////////*/
@@ -40,26 +49,20 @@ void enlistRook(int,int);
 void enlistKnight(int,int);
 void enlistBishop(int,int);
 void enlistPawn(int,int);
+unordered_map <char,int> piecePoints;
 
-
-struct pieceMovex
-{
- int weight;
- char piece;
- pair<int,int> start,end;
-};
 
 struct Comp
 {
    bool operator()(const pieceMovex& s1, const pieceMovex& s2)
    {
-       return s1.x < s2.x;
+       return s1.weight < s2.weight;
    }
 };
 
 vector <pieceMovex> MiniMax;
 
-vector < pair<int,int> > kingMoves,queenMoves,bishopMoves,rookMoves,knightMoves;
+vector < pair<int,int> > kingMoves;
 
 int main()
 {
@@ -80,7 +83,7 @@ int main()
         }
     }
 
-    cout<<"The stored chess board "<<endl;
+    cout<<"\n\nThe stored chess board\n"<<endl;
     for(int i=0;i<8;i++)
     {
         for(int j=0;j<8;j++)
@@ -108,7 +111,7 @@ int main()
     }
     else
     {
-        cout<<"No Checks yeah!!!!"<<endl;
+        cout<<"No Checks detected proceeding with the best move"<<endl;
         bestMove();
     }
 }
@@ -134,6 +137,15 @@ void initialize()
     kingMoves.push_back(make_pair(-1,0));
     kingMoves.push_back(make_pair(-1,-1));
     kingMoves.push_back(make_pair(0,-1));
+
+    sort(kingMoves.begin(),kingMoves.end());
+
+    piecePoints['k']=-INT_MAX/2;
+    piecePoints['q']=9;
+    piecePoints['r']=5;
+    piecePoints['b']=3;
+    piecePoints['n']=3;
+    piecePoints['p']=1;
 }
 
 
@@ -561,8 +573,12 @@ bool checkDetect()
             }
         }
     }
+
+    return false;
 }
 
+
+//!!!!Needs fixing!!!!!
 void checkResponse()
 {
     for(int i=0;i<8;i++)
@@ -573,16 +589,18 @@ void checkResponse()
             {
                 if(board[i][j].piece=='k')
                 {
-                    for(int k=0;knightMoves.size();k++)
+                    for(int k=0;k<kingMoves.size();k++)
                     {
                         if(isvalid(i+kingMoves[k].first,j+kingMoves[k].second))
                         {
                             if(board[i+kingMoves[k].first][j+kingMoves[k].second].state==-1 && attackMatrix[i+kingMoves[k].first][j+kingMoves[k].second]==0)
                             {
-                                printAns(i+kingMoves[k].first,j+kingMoves[k].second);
+                                cout<<"King to "<<i+kingMoves[k].first<<","<<MiniMax[i].end.second<<": "<<j+kingMoves[k].second<<" "<<endl;
+                                return;
                             }
                         }
                     }
+                    return;
                 }
             }
         }
@@ -600,22 +618,37 @@ void bestMove()
 
 bool attackOnQueen()
 {
-
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==moveOf)
+            if(board[i][j].piece=='q')
+            {
+                if(attackMatrix[i][j])
+                return true;
+                else
+                return false;
+            }
+        }
+    }
+    return false;
 }
 
 void moveQueen()
 {
-
+    cout<<"This is a beta version and attack on the queen is detected. Generally there is a simpler way to escape than this algorithm can predict."<<endl;
 }
 
 
 void enlistMoves()
 {
+    cout<<"Proceeding to enlist all possible moves available"<<endl;
     for(int i=0;i<8;i++)
     {
         for(int j=0;j<8;j++)
         {
-            if(board[i][j].state==(!moveOf))
+            if(board[i][j].state==(moveOf))
             {
                 switch(board[i][j].piece)
                 {
@@ -635,7 +668,11 @@ void enlistMoves()
         }
     }
 
-    make_heap(vec.begin(), vec.end(), Comp());
+    cout<<endl<<"Lisitng out all the weights found"<<endl;
+    for(int i=0;i<MiniMax.size();i++)
+    {
+        cout<<MiniMax[i].piece<<" at "<<MiniMax[i].end.first<<","<<MiniMax[i].end.second<<": "<<MiniMax[i].weight<<" "<<endl;
+    }
 }
 
 
@@ -650,9 +687,8 @@ void enlistRook(int x,int y)
     int i,j;
 
     pieceMovex temp;
-
     temp.piece='r';
-    temp.start=make_pair(i,j);
+    temp.start=make_pair(x,y);
     //up
     i=x-1;
     j=y;
@@ -660,13 +696,19 @@ void enlistRook(int x,int y)
     {
         if(board[i][j].state==(!moveOf))
         {
-            attackMatrix[i][j]++;
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
             break;
         }
         else if(board[i][j].state==(moveOf))
         break;
         else
-        attackMatrix[i][j]++;
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
         i--;
     }
 
@@ -675,15 +717,21 @@ void enlistRook(int x,int y)
     j=y-1;
     while(j>=0)
     {
-        if(board[i][j].state==(moveOf))
+        if(board[i][j].state==(!moveOf))
         {
-            attackMatrix[i][j]++;
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
             break;
         }
         else if(board[i][j].state==(moveOf))
         break;
         else
-        attackMatrix[i][j]++;
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
         j--;
     }
 
@@ -692,15 +740,21 @@ void enlistRook(int x,int y)
     j=y;
     while(i<8)
     {
-        if(board[i][j].state==(moveOf))
+        if(board[i][j].state==(!moveOf))
         {
-            attackMatrix[i][j]++;
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
             break;
         }
         else if(board[i][j].state==(moveOf))
         break;
         else
-        attackMatrix[i][j]++;
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
         i++;
     }
 
@@ -709,20 +763,370 @@ void enlistRook(int x,int y)
     j=y+1;
     while(j<8)
     {
-        if(board[i][j].state==(moveOf))
+        if(board[i][j].state==(!moveOf))
         {
-            attackMatrix[i][j]++;
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
             break;
         }
         else if(board[i][j].state==(moveOf))
-        break;setRook
+        break;
         else
-        attackMatrix[i][j]++;
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
         j++;
     }   
 }
 
-void printAns(int x, int y)
+void enlistKnight(int x,int y)
 {
-    cout<<"The best move is "<<x<<" "<<y<<endl;
+    int i,j;
+
+    pieceMovex temp;
+    temp.piece='n';
+    temp.start=make_pair(x,y);
+
+
+    i=x-2;
+    j=y+1;
+    //minus plus
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x-1;
+    j=y+2;
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+1;
+    j=y+2;
+    //plus plus
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+2;
+    j=y+1;
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+1;
+    j=y-2;
+    //plus minus
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+2;
+    j=y-1;
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x-1;
+    j=y-2;
+    //minus minus
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x-2;
+    j=y-1;
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+}
+
+void enlistBishop(int x,int y)
+{
+    int i,j;
+
+    pieceMovex temp;
+    temp.piece='b';
+    temp.start=make_pair(x,y);
+
+
+    //upper right
+    i=x-1;
+    j=y+1;
+    while(j<8 && i>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i--;
+        j++;
+    }
+
+    //upper left
+    i=x-1;
+    j=y-1;
+    while(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i--;
+        j--;
+    }
+
+    //bottom right
+    i=x+1;
+    j=y+1;
+    while(i<8 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i++;
+        j++;
+    }
+
+    //bottom left
+    i=x+1;
+    j=y-1;
+    while(i<8 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i++;
+        j--;
+    }
+}
+
+void enlistPawn(int x,int y)
+{
+    int i,j;
+    pieceMovex temp;
+    temp.piece='p';
+    temp.start=make_pair(x,y);
+
+    if(!moveOf)
+    {   
+        i=x+1;
+        j=y-1;
+        if(i<8 && j>=0)
+        {
+            if(board[i][j].state==(moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+            else if(board[i][j].state==-1)
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=attackMatrix[i][j]*(-50);
+                MiniMax.push_back(temp);
+            }
+        }
+
+        i=x+1;
+        j=y+1;
+        if(i<8 && j<8)
+        {
+            if(board[i][j].state==(moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+            else if(board[i][j].state==-1)
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=attackMatrix[i][j]*(-50);
+                MiniMax.push_back(temp);
+            }
+        }
+    }
+    else
+    {
+        i=x-1;
+        j=y-1;
+        if(i>=0 && j>=0)
+        {
+            if(board[i][j].state==(!moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+            else if(board[i][j].state==-1)
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=attackMatrix[i][j]*(-50);
+                MiniMax.push_back(temp);
+            }
+        }
+
+        i=x-1;
+        j=y+1;
+        if(i>=0 && j<8)
+        {
+            if(board[i][j].state==(!moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+            else if(board[i][j].state==-1)
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=attackMatrix[i][j]*(-50);
+                MiniMax.push_back(temp);
+            }
+        }
+    }
 }
