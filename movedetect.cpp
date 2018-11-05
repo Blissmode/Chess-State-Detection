@@ -1065,12 +1065,6 @@ void enlistPawn(int x,int y)
                 temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
                 MiniMax.push_back(temp);
             }
-            else if(board[i][j].state==-1)
-            {
-                temp.end=make_pair(i,j);
-                temp.weight=attackMatrix[i][j]*(-50);
-                MiniMax.push_back(temp);
-            }
         }
             
         i=x+1;
@@ -1081,12 +1075,6 @@ void enlistPawn(int x,int y)
             {
                 temp.end=make_pair(i,j);
                 temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
-                MiniMax.push_back(temp);
-            }
-            else if(board[i][j].state==-1)
-            {
-                temp.end=make_pair(i,j);
-                temp.weight=attackMatrix[i][j]*(-50);
                 MiniMax.push_back(temp);
             }
         }
@@ -1103,12 +1091,6 @@ void enlistPawn(int x,int y)
                 temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
                 MiniMax.push_back(temp);
             }
-            else if(board[i][j].state==-1)
-            {
-                temp.end=make_pair(i,j);
-                temp.weight=attackMatrix[i][j]*(-50);
-                MiniMax.push_back(temp);
-            }
         }
 
         i=x-1;
@@ -1119,12 +1101,6 @@ void enlistPawn(int x,int y)
             {
                 temp.end=make_pair(i,j);
                 temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
-                MiniMax.push_back(temp);
-            }
-            else if(board[i][j].state==-1)
-            {
-                temp.end=make_pair(i,j);
-                temp.weight=attackMatrix[i][j]*(-50);
                 MiniMax.push_back(temp);
             }
         }

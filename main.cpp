@@ -23,18 +23,77 @@ square board[8][8];
 Mat imgz;
 Mat result;
 Mat templ;
-string image_window = "Source Image";
-string result_window = "Result window";
+void MatchingMethod( int, void*,int,string,int,char);
 
-int max_Trackbar = 5;
 
-/// Function Headers
-void MatchingMethod( int, void*,int,string );
+
+
+
+
+
+
+////////////////////////////// MOVE DETECTION PART DECLARATION////////////////////////////
+
+struct pieceMovex
+{
+ int weight;
+ char piece;
+ pair<int,int> start,end;
+};
+
+
+int attackMatrix[8][8];
+int moveOf;
+
+
+void initialize();
+void findAttack();
+void setKing(int,int);
+void setQueen(int,int);
+void setRook(int,int);
+void setKnight(int,int);
+void setBishop(int,int);
+void setPawn(int,int);
+bool checkDetect();
+void checkResponse();
+void bestMove();
+void moveQueen();
+void enlistMoves();
+bool attackOnQueen();
+
+
+void enlistMoves();
+/*/////////////////////////////////////////////////////////////////////////
+                WEIGHTS RULE:
+    +100 for each possible exchange position
+    -50 for each value on attack matrix
+/////////////////////////////////////////////////////////////////////////*/
+void enlistRook(int,int);
+void enlistKnight(int,int);
+void enlistBishop(int,int);
+void enlistPawn(int,int);
+unordered_map <char,int> piecePoints;
+
+
+bool Comp(pieceMovex s1,pieceMovex s2)
+{
+    return s1.weight > s2.weight;
+};
+
+vector <pieceMovex> MiniMax;
+
+vector < pair<int,int> > kingMoves;
+
+
+
+
+
 
 
 int main()
 {
-    img = imread("images/absstart.png", 1);
+	initialize();
+    img = imread("images/startpos1.png", 1);
     Mat img1(img.rows, img.cols, CV_8UC1, Scalar(0));
 	int i, j;
 	//Colour Detection to remove the unwanted parts in the image
@@ -144,15 +203,16 @@ int main()
 	}
 
 	// UNCOMMENT FOR POINT DETECTION PART
-	// for(int i=0;i<8;i++)
-	// {
-	// 	for(int j=0;j<8;j++)
-	// 	{
-	// 		circle( src, Point( board[i][j].ltop.first,board[i][j].ltop.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
-	// 		circle( src, Point( board[i][j].rbottom.first,board[i][j].rbottom.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
-	// 		cout<<board[i][j].ltop.first<<" "<<board[i][j].ltop.second<<"           ";
-	// 	}
-	// 	cout<<endl;
+	for(int i=0;i<8;i++)
+	{
+		for(int j=0;j<8;j++)
+		{
+			// circle( src, Point( board[i][j].ltop.first,board[i][j].ltop.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
+			// circle( src, Point( board[i][j].rbottom.first,board[i][j].rbottom.second ), 32.0, Scalar( 0, 0, 255 ), 1, 8 );
+			printf("(%d,%d),(%d,%d)  ",board[i][j].ltop.first,board[i][j].ltop.second,board[i][j].rbottom.first,board[i][j].rbottom.second);
+		}
+		cout<<endl;
+	}
 
 	// imshow("point detection part",src);
 	imshow("Source after cropping",src);
@@ -191,18 +251,53 @@ int main()
 
 	//INTIATING TEMPLATE DETECTION
 
-    MatchingMethod( 0, 0 ,3,"images/bpawn.png");
-	MatchingMethod( 0, 0 ,3,"images/wpawn.png");
-	MatchingMethod( 0, 0 ,3,"images/bknight.png");
-	MatchingMethod( 0, 0 ,1,"images/wknight.png");
-	MatchingMethod( 0, 0 ,3,"images/bqueen.png");
-	MatchingMethod( 0, 0 ,1,"images/wqueen.png");
-	MatchingMethod( 0, 0 ,3,"images/bking.png");
-	MatchingMethod( 0, 0 ,1,"images/wking.png");
-	MatchingMethod( 0, 0 ,3,"images/bbishop.png");
-	MatchingMethod( 0, 0 ,1,"images/wbishop.png");
-	MatchingMethod( 0, 0 ,3,"images/brook.png");
-	MatchingMethod( 0, 0 ,1,"images/wrook.png");
+    MatchingMethod( 0, 0 ,3,"images/bpawn.png",0,'p');
+	MatchingMethod( 0, 0 ,3,"images/wpawn.png",1,'p');
+	MatchingMethod( 0, 0 ,3,"images/bknight.png",0,'n');
+	MatchingMethod( 0, 0 ,1,"images/wknight.png",1,'n');
+	MatchingMethod( 0, 0 ,3,"images/bqueen.png",0,'q');
+	MatchingMethod( 0, 0 ,1,"images/wqueen.png",1,'q');
+	MatchingMethod( 0, 0 ,3,"images/bking.png",0,'k');
+	MatchingMethod( 0, 0 ,1,"images/wking.png",1,'k');
+	MatchingMethod( 0, 0 ,3,"images/bbishop.png",0,'b');
+	MatchingMethod( 0, 0 ,1,"images/wbishop.png",1,'b');
+	MatchingMethod( 0, 0 ,3,"images/brook.png",0,'r');
+	MatchingMethod( 0, 0 ,1,"images/wrook.png",1,'r');
+
+
+	cout<<"\n\nThe stored chess board\n"<<endl;
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==1)
+            cout<<"w";
+            else if(board[i][j].state==0)
+            cout<<"b";
+            cout<<board[i][j].piece<<" ";
+        }
+        cout<<endl;
+    }
+	char s[10];
+	cout<<endl<<"This turn is the move of (white/black):";
+	cin>>s;
+    moveOf=strcmp(s,"white")?0:1;
+    if(moveOf)
+    cout<<"White to play"<<endl;
+    else
+    cout<<"Black to play"<<endl;
+
+    findAttack();
+    if(checkDetect())
+    {
+        cout<<"Check detected"<<endl;
+        checkResponse();
+    }
+    else
+    {
+        cout<<"No Checks detected proceeding with the best move"<<endl;
+        bestMove();
+    }
 
     waitKey(0);
     return 0;
@@ -210,58 +305,1076 @@ int main()
 
 
 
-void MatchingMethod( int, void* ,int match_method,string name)
+
+
+
+
+
+
+
+
+
+
+
+void initialize()
 {
-      /// Source image to display
+
+	for(int i=0;i<8;i++)
+	{
+		for(int j=0;j<8;j++)
+		{
+			board[i][j].state=-1;
+			board[i][j].piece='-';
+		}
+	}
+
+    // inititalize king moves;
+    kingMoves.push_back(make_pair(1,0));
+    kingMoves.push_back(make_pair(1,1));
+    kingMoves.push_back(make_pair(0,1));
+    kingMoves.push_back(make_pair(1,0));
+    kingMoves.push_back(make_pair(-1,1));
+    kingMoves.push_back(make_pair(-1,0));
+    kingMoves.push_back(make_pair(-1,-1));
+    kingMoves.push_back(make_pair(0,-1));
+
+    sort(kingMoves.begin(),kingMoves.end());
+
+    piecePoints['k']=-INT_MAX/2;
+    piecePoints['q']=9;
+    piecePoints['r']=5;
+    piecePoints['b']=3;
+    piecePoints['n']=3;
+    piecePoints['p']=1;
+}
+
+
+
+
+void MatchingMethod( int, void* ,int match_method,string name,int state,char piece)
+{
       Mat img_display;
       imgz.copyTo( img_display );
 
 	  templ=imread(name,1);
-
-      /// Create the result matrix
       int result_cols =  imgz.cols - templ.cols + 1;
       int result_rows = imgz.rows - templ.rows + 1;
 
       result.create( result_cols, result_rows, CV_32FC1 );
-
-      /// Do the Matching and Normalize
       matchTemplate( imgz, templ, result, match_method );
       normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
 
-      /// Localizing the best match with minMaxLoc
       Point minLoc; Point maxLoc;
       Point matchLoc;
       double minVal; double maxVal;
 
       for(int k=1;k<=8;k++)
       {
-        minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+		  minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+          // cout<<"Match #"<<k<<" occurs at:"<<result.at<float>(minLoc.x,minLoc.y)<<endl;
+    	  cout<<"Loacation:"<<matchLoc.x<<","<<matchLoc.y<<endl;
+          if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
+          {
+              result.at<float>(minLoc.x,minLoc.y)=1.0;
+              result.at<float>(maxLoc.x,maxLoc.y)=1.0;
+          }
+          else
+          {
+              result.at<float>(minLoc.x,minLoc.y)=0.0;
+              result.at<float>(maxLoc.x,maxLoc.y)=0.0;
+          }
 
-        // cout<<"Match #"<<k<<" occurs at:"<<result.at<float>(minLoc.x,minLoc.y)<<endl;
-        cout<<"Loacation:"<<matchLoc.x<<","<<matchLoc.y<<endl;
-        // Lowest matches
-        if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
-        {
-            result.at<float>(minLoc.x,minLoc.y)=1.0;
-            result.at<float>(maxLoc.x,maxLoc.y)=1.0;
-        }
-        else
-        {
-            result.at<float>(minLoc.x,minLoc.y)=0.0;
-            result.at<float>(maxLoc.x,maxLoc.y)=0.0;
-        }
+          if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
+          matchLoc = minLoc;
+          else
+          matchLoc = maxLoc;
 
-      /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
-      if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
-        { matchLoc = minLoc; }
-      else
-        { matchLoc = maxLoc; }
-
-      /// Show me what you got
-      rectangle( img_display, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar(0,0,255), 2, 8, 0 );
-      rectangle( result, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar(0,0,255), 2, 8, 0 );
+      	  rectangle( img_display, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar(0,0,255), 2, 8, 0 );
+      	  rectangle( result, matchLoc, Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ), Scalar(0,0,255), 2, 8, 0 );
+	  
+	  	  for(int i=0;i<8;i++)
+	  	  {
+	  	  	for(int j=0;j<8;j++)
+	  	  	{
+	  	  		if(board[i][j].ltop.first<=matchLoc.x && board[i][j].ltop.second<=matchLoc.y && board[i][j].rbottom.first>=matchLoc.x && board[i][j].rbottom.second>=matchLoc.y)
+		  		{
+		  			board[i][j].state=state;
+		  			board[i][j].piece=piece;
+		  		}
+	  	  	}
+	       }
       }
       imshow( name, img_display );
 
       return;
     }
+
+
+bool isvalid(int i,int j)
+{
+    if(i<8 && j<8 && i>=0 && j>=0)
+    return true;
+    else
+    return false;
+}
+
+
+void findAttack()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==(!moveOf))
+            {
+                switch(board[i][j].piece)
+                {
+                    case 'k':
+                    setKing(i,j);
+                    break;
+                    case 'q':
+                    setQueen(i,j);
+                    break;
+                    case 'r':
+                    setRook(i,j);
+                    break;
+                    case 'n':
+                    setKnight(i,j);
+                    break;
+                    case 'b':
+                    setBishop(i,j);
+                    break;
+                    case 'p':
+                    setPawn(i,j);
+                }
+            }
+        }
+    }
+
+    //Display the attack array
+
+    cout<<endl<<"Attack Matrix"<<endl;
+
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            cout<<attackMatrix[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+}
+
+
+
+
+void setKing(int x,int y)
+{
+    int i,j;
+    i=x-1;
+    j=y;
+    //north
+    if(i>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x-1;
+    j=y-1;
+    //north west
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x;
+    j=y-1;
+    //west
+    if(j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+1;
+    j=y-1;
+    //south west
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+1;
+    j=y;
+    //south
+    if(i<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+1;
+    j=y+1;
+    //south east
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x;
+    j=y+1;
+    //east
+    if(j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x-1;
+    j=y+1;
+    //north east
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+    
+}
+
+
+
+void setQueen(int x,int y)
+{
+    setRook(x,y);
+    setBishop(x,y);
+}
+
+
+
+void setRook(int x,int y)
+{
+     int i,j;
+
+    //up
+    i=x-1;
+    j=y;
+    while(i>=0)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i--;
+    }
+
+    //left
+    i=x;
+    j=y-1;
+    while(j>=0)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        j--;
+    }
+
+    //bottom
+    i=x+1;
+    j=y;
+    while(i<8)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i++;
+    }
+
+    //right
+    i=x;
+    j=y+1;
+    while(j<8)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        j++;
+    }   
+}
+
+
+
+void setKnight(int x,int y)
+{
+    int i,j;
+    i=x-2;
+    j=y+1;
+    //minus plus
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x-1;
+    j=y+2;
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+1;
+    j=y+2;
+    //plus plus
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+2;
+    j=y+1;
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+1;
+    j=y-2;
+    //plus minus
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x+2;
+    j=y-1;
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x-1;
+    j=y-2;
+    //minus minus
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+
+    i=x-2;
+    j=y-1;
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+        attackMatrix[i][j]++;
+    }
+}
+
+
+
+void setBishop(int x,int y)
+{
+    int i,j;
+
+    //upper right
+    i=x-1;
+    j=y+1;
+    while(j<8 && i>=0)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i--;
+        j++;
+    }
+
+    //upper left
+    i=x-1;
+    j=y-1;
+    while(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i--;
+        j--;
+    }
+
+    //bottom right
+    i=x+1;
+    j=y+1;
+    while(i<8 && j<8)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i++;
+        j++;
+    }
+
+    //bottom left
+    i=x+1;
+    j=y-1;
+    while(i<8 && j>=0)
+    {
+        if(board[i][j].state==(moveOf))
+        {
+            attackMatrix[i][j]++;
+            break;
+        }
+        else if(board[i][j].state==(!moveOf))
+        break;
+        else
+        attackMatrix[i][j]++;
+        i++;
+        j--;
+    }
+    
+}
+
+void setPawn(int x,int y)
+{
+    int i,j;
+
+    if(moveOf)
+    {   
+        i=x+1;
+        j=y-1;
+        if(i<8 && j>=0)
+        {
+            if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+            attackMatrix[i][j]++;
+        }
+
+        i=x+1;
+        j=y+1;
+        if(i<8 && j<8)
+        {
+            if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+            attackMatrix[i][j]++;
+        }
+    }
+    else
+    {
+        i=x-1;
+        j=y-1;
+        if(i>=0 && j>=0)
+        {
+            if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+            attackMatrix[i][j]++;
+        }
+
+        i=x-1;
+        j=y+1;
+        if(i>=0 && j<8)
+        {
+            if(board[i][j].state==(moveOf) || board[i][j].state==-1)
+            attackMatrix[i][j]++;
+        }
+    }
+}
+
+bool checkDetect()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==moveOf)
+            {
+                if(board[i][j].piece=='k')
+                {
+                    if(attackMatrix[i][j])
+                    return true;
+                    else
+                    return false;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+
+//!!!!Needs fixing!!!!!
+void checkResponse()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==moveOf)
+            {
+                if(board[i][j].piece=='k')
+                {
+                    for(int k=0;k<kingMoves.size();k++)
+                    {
+                        if(isvalid(i+kingMoves[k].first,j+kingMoves[k].second))
+                        {
+                            if(board[i+kingMoves[k].first][j+kingMoves[k].second].state==-1 && attackMatrix[i+kingMoves[k].first][j+kingMoves[k].second]==0)
+                            {
+                                cout<<"King to "<<i+kingMoves[k].first<<","<<MiniMax[i].end.second<<": "<<j+kingMoves[k].second<<" "<<endl;
+                                return;
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+    }
+}
+
+
+void bestMove()
+{
+    if(attackOnQueen())
+    moveQueen();
+    else
+    enlistMoves();
+}
+
+bool attackOnQueen()
+{
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==moveOf)
+            if(board[i][j].piece=='q')
+            {
+                if(attackMatrix[i][j])
+                return true;
+                else
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+void moveQueen()
+{
+    cout<<"This is a beta version and attack on the queen is detected. Generally there is a simpler way to escape than this algorithm can predict."<<endl;
+}
+
+
+void enlistMoves()
+{
+    cout<<"Proceeding to enlist all possible moves available"<<endl;
+    for(int i=0;i<8;i++)
+    {
+        for(int j=0;j<8;j++)
+        {
+            if(board[i][j].state==(moveOf))
+            {
+                switch(board[i][j].piece)
+                {
+                    case 'r':
+                    enlistRook(i,j);
+                    break;
+                    case 'n':
+                    enlistKnight(i,j);
+                    break;
+                    case 'b':
+                    enlistBishop(i,j);
+                    break;
+                    case 'p':
+                    enlistPawn(i,j);
+                }
+            }
+        }
+    }
+
+    cout<<endl<<"Lisitng out all the weights found"<<endl;
+	sort(MiniMax.begin(),MiniMax.end(),Comp);
+	cout<<"List of proper offensive moves available sorted by effectiveness:"<<endl;
+    for(int i=0;i<MiniMax.size();i++)
+    {
+		// printf("#%d: %c from (%d,%d) to (%d,%d)\n",i+1,MiniMax[i].piece,MiniMax[i].start.first,MiniMax[i].start.second,MiniMax[i].end.first,MiniMax[i].end.second);
+        cout<<MiniMax[i].piece<<" at "<<MiniMax[i].end.first<<","<<MiniMax[i].end.second<<": "<<MiniMax[i].weight<<" "<<endl;
+    }
+}
+
+
+
+
+
+
+
+
+void enlistRook(int x,int y)
+{
+    int i,j;
+
+    pieceMovex temp;
+    temp.piece='r';
+    temp.start=make_pair(x,y);
+    //up
+    i=x-1;
+    j=y;
+    while(i>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i--;
+    }
+
+    //left
+    i=x;
+    j=y-1;
+    while(j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        j--;
+    }
+
+    //bottom
+    i=x+1;
+    j=y;
+    while(i<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i++;
+    }
+
+    //right
+    i=x;
+    j=y+1;
+    while(j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        j++;
+    }   
+}
+
+void enlistKnight(int x,int y)
+{
+    int i,j;
+
+    pieceMovex temp;
+    temp.piece='n';
+    temp.start=make_pair(x,y);
+
+
+    i=x-2;
+    j=y+1;
+    //minus plus
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x-1;
+    j=y+2;
+    if(i>=0 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+1;
+    j=y+2;
+    //plus plus
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+2;
+    j=y+1;
+    if(i<8 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+1;
+    j=y-2;
+    //plus minus
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x+2;
+    j=y-1;
+    if(i<8 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x-1;
+    j=y-2;
+    //minus minus
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+
+    i=x-2;
+    j=y-1;
+    if(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+        }
+        else if(board[i][j].state==-1)
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+    }
+}
+
+void enlistBishop(int x,int y)
+{
+    int i,j;
+
+    pieceMovex temp;
+    temp.piece='b';
+    temp.start=make_pair(x,y);
+
+
+    //upper right
+    i=x-1;
+    j=y+1;
+    while(j<8 && i>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i--;
+        j++;
+    }
+
+    //upper left
+    i=x-1;
+    j=y-1;
+    while(i>=0 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i--;
+        j--;
+    }
+
+    //bottom right
+    i=x+1;
+    j=y+1;
+    while(i<8 && j<8)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i++;
+        j++;
+    }
+
+    //bottom left
+    i=x+1;
+    j=y-1;
+    while(i<8 && j>=0)
+    {
+        if(board[i][j].state==(!moveOf))
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+            MiniMax.push_back(temp);
+            break;
+        }
+        else if(board[i][j].state==(moveOf))
+        break;
+        else
+        {
+            temp.end=make_pair(i,j);
+            temp.weight=attackMatrix[i][j]*(-50);
+            MiniMax.push_back(temp);
+        }
+        i++;
+        j--;
+    }
+}
+
+void enlistPawn(int x,int y)
+{
+    int i,j;
+    pieceMovex temp;
+    temp.piece='p';
+    temp.start=make_pair(x,y);
+
+    if(!moveOf)
+    {   
+        i=x+1;
+        j=y-1;
+        if(i<8 && j>=0)
+        {
+            if(board[i][j].state==(moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+        }
+            
+        i=x+1;
+        j=y+1;
+        if(i<8 && j<8)
+        {
+            if(board[i][j].state==(moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+        }
+    }
+    else
+    {
+        i=x-1;
+        j=y-1;
+        if(i>=0 && j>=0)
+        {
+            if(board[i][j].state==(!moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+        }
+
+        i=x-1;
+        j=y+1;
+        if(i>=0 && j<8)
+        {
+            if(board[i][j].state==(!moveOf))
+            {
+                temp.end=make_pair(i,j);
+                temp.weight=100*(piecePoints[board[i][j].piece]-piecePoints[board[x][y].piece]);
+                MiniMax.push_back(temp);
+            }
+        }
+    }
+}
