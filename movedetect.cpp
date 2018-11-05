@@ -1072,7 +1072,7 @@ void enlistPawn(int x,int y)
                 MiniMax.push_back(temp);
             }
         }
-
+            
         i=x+1;
         j=y+1;
         if(i<8 && j<8)
